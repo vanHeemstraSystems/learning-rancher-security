@@ -1,0 +1,67 @@
+# Rancher Security Audit Tool Configuration
+
+# Copy this file to config.yaml and fill in your details
+
+rancher:
+
+# Rancher server URL (include https://)
+
+url: “https://rancher.example.com”
+
+# API credentials (create these in Rancher UI -> User Settings -> API Keys)
+
+access_key: “token-xxxxx”
+secret_key: “your-secret-key-here”
+
+# SSL/TLS verification
+
+# Set to false only in test environments with self-signed certificates
+
+verify_ssl: true
+
+# Audit options
+
+audit:
+
+# Checks to run (leave empty to run all)
+
+checks:
+- authentication
+- api_tokens
+- rbac
+- secrets
+- network_policies
+- pod_security
+- tls
+- audit_logging
+- image_security
+- backup
+
+# Report settings
+
+report:
+format: “html”  # text, json, or html
+output_path: “./reports/”
+
+# Severity thresholds for alerts
+
+thresholds:
+critical: 0  # Fail audit if any critical findings
+high: 5      # Warn if more than 5 high findings
+
+# Optional: External integrations
+
+integrations:
+
+# Slack webhook for notifications
+
+slack_webhook: “”
+
+# Email notifications
+
+email:
+enabled: false
+smtp_server: “”
+smtp_port: 587
+from_address: “”
+to_addresses: []
