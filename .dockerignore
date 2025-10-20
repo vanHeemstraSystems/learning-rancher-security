@@ -1,0 +1,85 @@
+# Git files
+
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+
+*.md
+docs/
+LICENSE
+
+# Python cache and virtual environments
+
+**pycache**/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# IDE and editor files
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Reports and logs (will be mounted as volumes)
+
+reports/
+logs/
+*.log
+*.html
+*.json
+
+# Configuration files with secrets
+
+config.yaml
+.env
+*.key
+*.pem
+*.crt
+
+# Testing
+
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Build artifacts
+
+build/
+dist/
+*.egg-info/
+
+# Docker files
+
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# CI/CD
+
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Backups
+
+backups/
+*.bak
+*.backup
+
+# Temporary files
+
+tmp/
+temp/
+*.tmp
