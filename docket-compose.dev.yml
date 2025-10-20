@@ -1,0 +1,59 @@
+# Docker Compose Development Override
+
+# Use this for development and testing
+
+# Run with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+version: ‘3.8’
+
+services:
+rancher:
+# Development-specific settings for Rancher
+environment:
+# Enable debug mode
+- CATTLE_DEBUG=true
+- CATTLE_FEATURES=multi-cluster-management=false
+ports:
+# Expose additional ports for debugging if needed
+- “8080:80”
+- “8443:443”
+labels:
+- “com.example.environment=development”
+
+audit-tool:
+# Override for development - mount source code directly
+build:
+context: .
+dockerfile: Dockerfile
+target: development
+volumes:
+# Mount source code for live editing
+- ./rancher_security_audit.py:/app/rancher_security_audit.py:ro
+- ./run-audit.sh:/app/run-audit.sh:ro
+- ./docker-entrypoint.sh:/app/docker-entrypoint.sh:ro
+# Mount reports and logs
+- ./reports:/reports
+- ./logs:/app/logs
+# Mount config
+- ./config.yaml:/app/config.yaml:ro
+environment:
+# Enable debug mode
+- DEBUG=true
+# Run initial scan on startup
+- RUN_INITIAL_SCAN=false
+# Disable scheduled scans for manual testing
+- AUDIT_SCHEDULE=””
+# Override command to keep container running
+command: tail -f /dev/null
+labels:
+- “com.example.environment=development”
+# Run as root for development ease
+user: “0:0”
+
+# Development-specific volumes
+
+volumes:
+rancher-data:
+name: rancher-dev-data
+rancher-log:
+name: rancher-dev-log
