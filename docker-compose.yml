@@ -1,0 +1,85 @@
+version: ‘3.8’
+
+services:
+
+# Rancher Server
+
+rancher:
+image: rancher/rancher:${RANCHER_VERSION:-v2.8.0}
+container_name: rancher
+hostname: rancher
+restart: unless-stopped
+privileged: true
+ports:
+- “${RANCHER_HTTP_PORT:-8080}:80”
+- “${RANCHER_HTTPS_PORT:-8443}:443”
+environment:
+- CATTLE_BOOTSTRAP_PASSWORD=${CATTLE_BOOTSTRAP_PASSWORD:-admin}
+- CATTLE_SERVER_URL=https://${RANCHER_HOSTNAME:-localhost}:${RANCHER_HTTPS_PORT:-8443}
+volumes:
+- rancher-data:/var/lib/rancher
+- rancher-log:/var/log/auditlog
+networks:
+- rancher-network
+healthcheck:
+test: [“CMD”, “curl”, “-f”, “-k”, “https://localhost/healthz”]
+interval: 30s
+timeout: 10s
+retries: 5
+start_period: 60s
+labels:
+- “com.example.description=Rancher Server for Testing”
+- “com.example.department=Security”
+
+# Rancher Security Audit Tool
+
+audit-tool:
+build:
+context: .
+dockerfile: Dockerfile
+container_name: audit-tool
+hostname: audit-tool
+restart: unless-stopped
+depends_on:
+rancher:
+condition: service_healthy
+environment:
+- RANCHER_URL=${RANCHER_URL:-https://rancher:443}
+- RANCHER_ACCESS_KEY=${RANCHER_ACCESS_KEY}
+- RANCHER_SECRET_KEY=${RANCHER_SECRET_KEY}
+- VERIFY_SSL=${VERIFY_SSL:-false}
+- AUDIT_SCHEDULE=${AUDIT_SCHEDULE:-0 2 * * *}
+- REPORT_FORMAT=${REPORT_FORMAT:-html}
+- REPORT_RETENTION_DAYS=${REPORT_RETENTION_DAYS:-30}
+- TZ=${TZ:-UTC}
+volumes:
+# Mount reports directory to access from host
+- ./reports:/reports
+# Mount config file
+- ./config.yaml:/app/config.yaml:ro
+# Mount logs directory
+- ./logs:/app/logs
+networks:
+- rancher-network
+labels:
+- “com.example.description=Rancher Security Audit Tool”
+- “com.example.department=Security”
+# Run as non-root user
+user: “1000:1000”
+
+networks:
+rancher-network:
+name: rancher-security-network
+driver: bridge
+ipam:
+driver: default
+config:
+- subnet: 172.20.0.0/16
+
+volumes:
+rancher-data:
+name: rancher-data
+driver: local
+rancher-log:
+name: rancher-log
+driver: local
