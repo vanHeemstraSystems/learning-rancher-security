@@ -1,11 +1,11 @@
 learning-rancher-security
 # Learning Rancher Security
 
-# 100 - Introduction
+## 100 - Introduction
 
 See [README.md](./100/README.md)
 
-# 300 - Requirements
+## 200 - Requirements
 
 See [README.md](./200/README.md)
 
