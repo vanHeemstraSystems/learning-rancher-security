@@ -1,0 +1,151 @@
+name: Rancher Security Audit
+
+on:
+schedule:
+# Run security audit daily at 2 AM UTC
+- cron: ‘0 2 * * *’
+workflow_dispatch:
+# Allow manual triggering
+push:
+branches:
+- main
+paths:
+- ‘rancher_security_audit.py’
+- ‘.github/workflows/security-audit.yml’
+
+jobs:
+security-audit:
+runs-on: ubuntu-latest
+
+```
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v4
+  
+  - name: Set up Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: '3.11'
+      cache: 'pip'
+  
+  - name: Install dependencies
+    run: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+  
+  - name: Create config from secrets
+    run: |
+      cat > config.yaml << EOF
+      rancher:
+        url: "${{ secrets.RANCHER_URL }}"
+        access_key: "${{ secrets.RANCHER_ACCESS_KEY }}"
+        secret_key: "${{ secrets.RANCHER_SECRET_KEY }}"
+      verify_ssl: true
+      EOF
+  
+  - name: Run security audit
+    id: audit
+    run: |
+      python rancher_security_audit.py \
+        --config config.yaml \
+        --full-scan \
+        --output report.html \
+        --format html
+    continue-on-error: true
+  
+  - name: Upload security report
+    uses: actions/upload-artifact@v4
+    with:
+      name: security-audit-report-${{ github.run_number }}
+      path: report.html
+      retention-days: 30
+  
+  - name: Check for critical findings
+    run: |
+      # Parse report for critical findings
+      if grep -q "CRITICAL:" report.html; then
+        echo "::error::Critical security findings detected!"
+        exit 1
+      fi
+  
+  - name: Send Slack notification (on failure)
+    if: failure() && secrets.SLACK_WEBHOOK != ''
+    uses: slackapi/slack-github-action@v1
+    with:
+      payload: |
+        {
+          "text": "🚨 Rancher Security Audit Failed",
+          "blocks": [
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Rancher Security Audit* has detected critical issues.\n*Repository:* ${{ github.repository }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"
+              }
+            }
+          ]
+        }
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+  
+  - name: Comment on PR (if applicable)
+    if: github.event_name == 'pull_request'
+    uses: actions/github-script@v7
+    with:
+      script: |
+        const fs = require('fs');
+        const report = fs.readFileSync('report.html', 'utf8');
+        
+        // Extract summary (simplified)
+        const criticalMatch = report.match(/CRITICAL:\s*(\d+)/);
+        const highMatch = report.match(/HIGH:\s*(\d+)/);
+        const mediumMatch = report.match(/MEDIUM:\s*(\d+)/);
+        
+        const critical = criticalMatch ? criticalMatch[1] : '0';
+        const high = highMatch ? highMatch[1] : '0';
+        const medium = mediumMatch ? mediumMatch[1] : '0';
+        
+        const comment = `## 🔒 Rancher Security Audit Results
+        
+        | Severity | Count |
+        |----------|-------|
+        | 🔴 Critical | ${critical} |
+        | 🟠 High | ${high} |
+        | 🟡 Medium | ${medium} |
+        
+        Full report available in workflow artifacts.
+        `;
+        
+        github.rest.issues.createComment({
+          issue_number: context.issue.number,
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          body: comment
+        });
+```
+
+# Optional: Code quality checks
+
+code-quality:
+runs-on: ubuntu-latest
+
+```
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v4
+  
+  - name: Set up Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: '3.11'
+  
+  - name: Install linting tools
+    run: |
+      pip install pylint flake8 black mypy
+  
+  - name: Run linters
+    run: |
+      black --check rancher_security_audit.py
+      flake8 rancher_security_audit.py --max-line-length=120
+      pylint rancher_security_audit.py --disable=C0111,R0913
+```
