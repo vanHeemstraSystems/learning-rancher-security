@@ -17,7 +17,6 @@ jobs:
 security-audit:
 runs-on: ubuntu-latest
 
-```
 steps:
   - name: Checkout code
     uses: actions/checkout@v4
@@ -122,14 +121,12 @@ steps:
           repo: context.repo.repo,
           body: comment
         });
-```
 
 # Optional: Code quality checks
 
 code-quality:
 runs-on: ubuntu-latest
 
-```
 steps:
   - name: Checkout code
     uses: actions/checkout@v4
@@ -148,4 +145,3 @@ steps:
       black --check rancher_security_audit.py
       flake8 rancher_security_audit.py --max-line-length=120
       pylint rancher_security_audit.py --disable=C0111,R0913
-```
